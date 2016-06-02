@@ -21,89 +21,44 @@ int abs(int n);
 /*
 	Take random e-matrix A(mxn) and a non-negative
 	vector S(mx1). Generate random e-vectors Y(nx1).
-	Compute the cost function. If yes, report Y else change one 
-	element of Y.
+	Compute the cost function. 
 
  */
 
 int main(int argc,char* argv[]) {
 
+	int A[M][N],Y[N],S[M],H[N+1];
+	
+	/*
+		Idk if one or 2 kernels are required.
+	 */
 
-	int A[M][N],Y[N],S[M],H[N+1],X[N],i,j,minCost = INT_MAX,maxCost = INT_MIN,iterations = 0;
-
+	/*
+		Randomly generate A,Y and S. Compute H.
+	 */
 	generateData(A,Y,S,H);	
 
-	clock_t begin,end;
-	double time_spent;
-
-	const int k = 1 << K;
-	//printf("\nk = %d\n",k);
+	/*
+		Launch kernel ... for calculating A*X for a
+		particular block. In total 2^K blocks required.
+	 */
 	
-	begin = clock();
+	// Number of blocks required.
+	const int numOfBlocks = 1 << K;
+	computeAX<<< numOfBlocks, >>>();
 
-	for(i = 0;i < k; i++) {
+	/*
+		Launch kernel ... for computing cost. This includes
+		computing S_[] in O(N) and H_[]. And thus calculating
+		cost. This is executed for a particular thread.
+	 */
+	// Number of threads required.
+	const int numOfThreads = N - K;
+	computeCost<<< numOfBlocks, numOfThreads >>>();
 
-		int z;
-		for(z = 0;z < N;z++)
-			X[z] = -1;	
 		
-		//For first K bits.
-		for(j = 0;j < K;j++) 
-			X[j] = (i&(1<<j)) ? 1:-1;
-		
-		//printf("\nX:");
-		//for(z = 0;z < N;z++)
-			//printf("%d ",X[z]);
 
-		int S_i[M];
-		matrixMul(A,X,S_i);
-
-		for(z = K;z < N; z++,iterations++) {
-
-			X[z] = -X[z];
-
-			int p;
-			//printf("\ni = %d,z = %d\nX:\n",i,z);
-			//for(p = 0;p < N;p++)
-				//printf("%d ",X[p]);
-
-			
-			// 	Calculate Sx for the neighbour of X
-			// 	in O(n). s_i' = s_i - 2*a_i_k*x_k.
-			// 	0 <= i < M, 0 <= k < N.
-			 
-			int m,S_xx[M];
-			for(m = 0;m < M;m++)
-				S_xx[m] = S_i[m] - 2 * A[m][z] * (-X[z]);
-
-			// int S_x[M];
-			// matrixMul(A,X,S_x);
-
-			X[z] = -X[z];
-
-			// printf("\nS_x:\n");
-			// for(p = 0;p < M;p++)
-			// 	printf("%d ",S_x[p]);
-			
-			// printf("\nS_xx:\n");
-			// for(p = 0;p < M;p++)
-			// 	printf("%d ",S_xx[p]);
-
-			//Calculate the cost for X.
-			int costX = calculateCost(S_xx,H);
-			minCost = MIN(costX,minCost);
-			maxCost = MAX(costX,maxCost);
-
-			printf("\ni:%d Costx:%d MinCost:%d MaxCost:%d\n------------------\n\n",i,costX,minCost,maxCost);
-
-		}
-
-	}
-
-	end = clock();
-	time_spent = (double)(end - begin)/CLOCKS_PER_SEC;
-	printf("\nTime taken: %0.10f\n",time_spent);
-	printf("\nNumber of iterations: %d\n",iterations);
+	
 
 	return 0;
 }
