@@ -3,9 +3,9 @@
 #include <time.h>
 #include <limits.h>
 
-#define M 101 
-#define N 117
-#define K 22 // Choose K < N.
+#define M 801
+#define N 817
+#define K 15 // Choose K < N.
 #define G 30
 
 #define MIN(a,b) (a>b?b:a)
